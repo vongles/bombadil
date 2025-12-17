@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# B.T.D.S. VELOCITY TOOL: pastex v4.6.1 (Polymorphic/Auto-Exec)
+# B.T.D.S. VELOCITY TOOL: pastex v4.6.2 (Python-Written Stable Build)
 # PURPOSE: Env-aware execution pipeline with Bombadil integration.
 # ==============================================================================
 
@@ -37,7 +37,7 @@ pastex() {
     mkdir -p "$CONFIG_DIR"
 
     # --- 3. CLIPBOARD INGESTION ---
-    log_info "Ingesting clipboard data..."
+    # We silently capture clipboard. If it fails, we error out.
     if command -v termux-clipboard-get &> /dev/null; then termux-clipboard-get > "$TEMP_BUFFER"
     elif command -v wl-paste &> /dev/null; then wl-paste > "$TEMP_BUFFER"
     elif command -v pbpaste &> /dev/null; then pbpaste > "$TEMP_BUFFER"
@@ -68,11 +68,15 @@ pastex() {
     local filename=$(basename "$target_file")
     if [[ "$1" != -* ]] && [[ -n "$1" ]]; then filename="$1"; shift; fi
 
-    # Bombadil Config Lookup (Requires yq)
-    local source_dir=$(yq '.paths.scripts_dir' "$CONFIG_FILE" -r 2>/dev/null)
-    local deploy_dir=$(yq '.paths.deploy_dir' "$CONFIG_FILE" -r 2>/dev/null)
-
-    # Fallback defaults if config is missing
+    # Bombadil Config Lookup (With Fallbacks)
+    local source_dir=""
+    local deploy_dir=""
+    
+    if command -v yq &> /dev/null; then
+        source_dir=$(yq '.paths.scripts_dir' "$CONFIG_FILE" -r 2>/dev/null)
+        deploy_dir=$(yq '.paths.deploy_dir' "$CONFIG_FILE" -r 2>/dev/null)
+    fi
+    
     if [[ -z "$source_dir" || "$source_dir" == "null" ]]; then source_dir="$HOME/btds_dots/btds_scripts"; fi
     if [[ -z "$deploy_dir" || "$deploy_dir" == "null" ]]; then deploy_dir="$HOME/.local/bin/btds"; fi
 
