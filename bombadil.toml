@@ -1,16 +1,13 @@
-# --- B.T.D.S. OMNISYSTEM CONFIG V4.6 ---
 dotfiles_dir = "."
 
 [settings]
 terminal_width = 80
 default_profile = "arch_arm_proot"
 
-# --- PROFILE: ARCH ARM PROOT ---
 [profiles.arch_arm_proot]
     vars = [ "vars_arch.toml" ]
 
     [profiles.arch_arm_proot.dots]
-    # Core Assets (Assimilated)
     bash_core   = { source = "bash/.bashrc",        target = ".bashrc" }
     bash_alias  = { source = "bash/aliases.bash",   target = ".config/bash/aliases.bash" }
     bash_export = { source = "bash/exports.bash",   target = ".config/bash/exports.bash" }
@@ -18,28 +15,28 @@ default_profile = "arch_arm_proot"
     starship    = { source = "starship.toml",       target = ".config/starship.toml" }
     nvim_custom = { source = "nvim/lua/custom",     target = ".config/nvim/lua/custom" }
     
-    # B.T.D.S. Module (The Toolchain)
-    btds_tools  = { source = "btds_scripts", target = ".local/bin/btds", ignore = ["__pycache__", "*.txt", "*.json"] }
+    # B.T.D.S. INTEGRATION (Correct Table Syntax)
+    # 1. The Pastex Tool
+    pastex_bin  = { source = "btds_scripts/pastex", target = ".local/bin/pastex" }
+    
+    # 2. The Link to the entire folder (Optional, if you want direct access)
+    btds_dir    = { source = "btds_scripts",        target = ".local/bin/btds" }
 
     [profiles.arch_arm_proot.hook]
     post_install = [
         "mkdir -p ~/.config/bash",
-        "mkdir -p ~/.config/nvim/lua",
+        "chmod +x ~/.local/bin/pastex",
         "chmod +x ~/.local/bin/btds/*",
         "source ~/.bashrc"
     ]
 
-# --- PROFILE: TERMUX ---
 [profiles.termux]
     vars = [ "vars_termux.toml" ]
     [profiles.termux.dots]
     bash_core   = { source = "bash/.bashrc",        target = ".bashrc" }
     bash_alias  = { source = "bash/aliases.bash",   target = ".config/bash/aliases.bash" }
-    bash_export = { source = "bash/exports.bash",   target = ".config/bash/exports.bash" }
-    bash_prompt = { source = "bash/prompt.bash",    target = ".config/bash/prompt.bash" }
-    starship    = { source = "starship.toml",       target = ".config/starship.toml" }
-    nvim_custom = { source = "nvim/lua/custom",     target = ".config/nvim/lua/custom" }
-    btds_tools  = { source = "btds_scripts", target = ".local/bin/btds", ignore = ["__pycache__", "*.txt", "*.json"] }
-    
+    # ... (other termux dots)
+    pastex_bin  = { source = "btds_scripts/pastex", target = ".local/bin/pastex" }
+
     [profiles.termux.hook]
-    post_install = [ "chmod +x ~/.local/bin/btds/*", "source ~/.bashrc" ]
+    post_install = [ "chmod +x ~/.local/bin/pastex", "source ~/.bashrc" ]

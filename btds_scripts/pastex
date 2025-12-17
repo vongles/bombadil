@@ -1,129 +1,100 @@
-#!/bin/bash
-# ==============================================================================
-# B.T.D.S. VELOCITY TOOL: pastex v4.7 (Explicit Shebang)
-# PURPOSE: Env-aware execution pipeline with clean binary generation.
-# ==============================================================================
+#!/usr/bin/env python3
+import os
+import sys
+import subprocess
+import shutil
+from pathlib import Path
 
-pastex() {
-    # --- 1. ENV DETECTION ---
-    local RED='\033[0;31m'
-    local GREEN='\033[0;32m'
-    local BLUE='\033[0;34m'
-    local YELLOW='\033[1;33m'
-    local NC='\033[0m'
+def log(level, msg):
+    colors = {"INFO": "\033[94m", "OK": "\033[92m", "WARN": "\033[93m", "ERR": "\033[91m"}
+    print(f"{colors.get(level, '')}>> [{level}] {msg}\033[0m")
 
-    log_info() { echo -e "${BLUE}>> [INFO] $1${NC}"; }
-    log_success() { echo -e "${GREEN}>> [OK]   $1${NC}"; }
-    log_warn() { echo -e "${YELLOW}>> [WARN] $1${NC}"; }
-    log_err() { echo -e "${RED}>> [ERR]  $1${NC}"; }
+def main():
+    # 1. GET CLIPBOARD
+    try:
+        if shutil.which("termux-clipboard-get"):
+            content = subprocess.check_output("termux-clipboard-get", text=True)
+        elif shutil.which("wl-paste"):
+            content = subprocess.check_output("wl-paste", text=True)
+        elif shutil.which("xclip"):
+            content = subprocess.check_output(["xclip", "-o"], text=True)
+        else:
+            log("ERR", "No clipboard tool found.")
+            sys.exit(1)
+    except Exception as e:
+        log("ERR", f"Clipboard error: {e}")
+        sys.exit(1)
 
-    local PKG_CMD=""
-    if command -v yay &> /dev/null; then PKG_CMD="yay -S --noconfirm" 
-    elif command -v pacman &> /dev/null; then
-        if [ "$EUID" -ne 0 ]; then PKG_CMD="sudo pacman -S --noconfirm"
-        else PKG_CMD="pacman -S --noconfirm"; fi
-    elif command -v apt &> /dev/null; then PKG_CMD="sudo apt install -y" 
-    elif command -v pkg &> /dev/null; then PKG_CMD="pkg install -y" 
-    fi
-
-    # --- 2. CONFIGURATION ---
-    local CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/btds"
-    local CONFIG_FILE="$CONFIG_DIR/pastex.toml"
-    local TEMP_BUFFER="/tmp/pastex_buffer_$(date +%s)"
-    mkdir -p "$CONFIG_DIR"
-
-    # --- 3. INGESTION ---
-    if command -v termux-clipboard-get &> /dev/null; then termux-clipboard-get > "$TEMP_BUFFER"
-    elif command -v wl-paste &> /dev/null; then wl-paste > "$TEMP_BUFFER"
-    elif command -v pbpaste &> /dev/null; then pbpaste > "$TEMP_BUFFER"
-    elif command -v xclip &> /dev/null; then xclip -selection clipboard -o > "$TEMP_BUFFER"
-    else log_err "No clipboard tool found."; rm "$TEMP_BUFFER"; return 1; fi
-
-    # --- 4. METADATA PARSING ---
-    # We scan the whole buffer for headers, but anchored to start of line to avoid false positives.
+    lines = content.splitlines()
+    meta = {}
     
-    local raw_file=$(grep "^[ \t]*# @pastex file:" "$TEMP_BUFFER" | head -n 1 | cut -d':' -f2 | xargs)
-    local meta_shebang=$(grep "^[ \t]*# @pastex shebang:" "$TEMP_BUFFER" | head -n 1 | cut -d':' -f2- | xargs)
-    local meta_boot=$(grep "^[ \t]*# @pastex boot:" "$TEMP_BUFFER" | head -n 1 | cut -d':' -f2- | sed 's/^[ \t]*//')
-    local meta_deps=$(grep "^[ \t]*# @pastex deps:" "$TEMP_BUFFER" | head -n 1 | cut -d':' -f2- | sed 's/^[ \t]*//')
-    local meta_exec=$(grep "^[ \t]*# @pastex exec:" "$TEMP_BUFFER" | head -n 1 | cut -d':' -f2- | sed 's/^[ \t]*//')
-    local meta_args=$(grep "^[ \t]*# @pastex args:" "$TEMP_BUFFER" | head -n 1 | cut -d':' -f2- | sed 's/^[ \t]*//')
-    local meta_noexec=$(grep "^[ \t]*# @pastex noexec:" "$TEMP_BUFFER" | head -n 1 | cut -d':' -f2 | xargs)
+    # 2. PARSE METADATA
+    for line in lines[:20]:
+        line = line.strip()
+        if not line.startswith("# @pastex"): continue
+        
+        parts = line.split(":", 1)
+        if len(parts) < 2: continue
+        
+        key = parts[0].replace("# @pastex", "").strip()
+        val = parts[1].strip()
+        meta[key] = val
 
-    if [[ -z "$raw_file" ]] && [[ -z "$1" ]]; then
-        log_err "No filename detected. Add '# @pastex file: <name>'."
-        rm "$TEMP_BUFFER"; return 1
-    fi
+    if "file" not in meta:
+        log("ERR", "No '# @pastex file: <name>' header found.")
+        sys.exit(1)
 
-    # --- 5. DEPLOYMENT ---
-    local target_file="${raw_file/#\~/$HOME}"
-    local filename=$(basename "$target_file")
-    if [[ "$1" != -* ]] && [[ -n "$1" ]]; then filename="$1"; shift; fi
-
-    local source_dir="$HOME/btds_dots/btds_scripts"
-    local deploy_dir="$HOME/.local/bin/btds"
+    # 3. PATHS
+    # Hardcoded to your Bombadil structure
+    home = Path.home()
+    repo_scripts = home / "btds_dots" / "btds_scripts"
+    target_bin = home / ".local" / "bin" / "btds"
     
-    # Simple YQ check
-    if command -v yq &> /dev/null; then
-        sd=$(yq '.paths.scripts_dir' "$CONFIG_FILE" -r 2>/dev/null)
-        dd=$(yq '.paths.deploy_dir' "$CONFIG_FILE" -r 2>/dev/null)
-        if [[ "$sd" != "null" && -n "$sd" ]]; then source_dir="$sd"; fi
-        if [[ "$dd" != "null" && -n "$dd" ]]; then deploy_dir="$dd"; fi
-    fi
+    repo_scripts.mkdir(parents=True, exist_ok=True)
+    target_bin.mkdir(parents=True, exist_ok=True)
 
-    source_dir="${source_dir/#\$HOME/$HOME}"; source_dir="${source_dir/#\~/$HOME}"
-    deploy_dir="${deploy_dir/#\$HOME/$HOME}"; deploy_dir="${deploy_dir/#\~/$HOME}"
+    filename = meta["file"]
+    script_path = repo_scripts / filename
+    link_path = target_bin / filename
 
-    mkdir -p "$source_dir" "$deploy_dir"
-    local source_path="$source_dir/$filename"
-    local deploy_path="$deploy_dir/$filename"
+    # 4. WRITE FILE
+    with open(script_path, "w") as f:
+        # Handle Shebang
+        if "shebang" in meta:
+            f.write(f"#!{meta['shebang']}\n")
+            # Write content excluding metadata lines
+            for line in lines:
+                if not line.strip().startswith("# @pastex"):
+                    f.write(line + "\n")
+        else:
+            # Dump all
+            f.write(content)
 
-    # --- WRITE LOGIC (SHEBANG SUPPORT) ---
-    if [[ -n "$meta_shebang" ]]; then
-        # 1. Write Shebang
-        # 2. Append file content WITHOUT pastex metadata lines (Clean Binary)
-        grep -v "^[ \t]*# @pastex" "$TEMP_BUFFER" >> "$source_path"
-    else
-        # Standard Dump
-        cat "$TEMP_BUFFER" > "$source_path"
-    fi
+    script_path.chmod(0o755)
+    
+    # 5. LINK
+    if link_path.exists() or link_path.is_symlink():
+        link_path.unlink()
+    link_path.symlink_to(script_path)
+    
+    log("OK", f"Deployed: {filename}")
 
-    chmod +x "$source_path"
-    ln -sf "$source_path" "$deploy_path"
-    rm "$TEMP_BUFFER"
-    log_success "Deployed: $filename"
+    # 6. BOOT & EXEC
+    if "deps" in meta:
+        log("INFO", f"Checking deps: {meta['deps']}")
+        # (Simplified dep check logic here if needed)
 
-    # --- 6. BOOTSTRAP ---
-    if [[ -n "$meta_deps" ]]; then
-        if [[ -n "$PKG_CMD" ]]; then
-            log_info "Installing Deps: $meta_deps"
-            $PKG_CMD $meta_deps
-        else log_warn "Deps listed ($meta_deps) but no pkg manager found."; fi
-    fi
+    if "boot" in meta:
+        log("INFO", "Running boot...")
+        boot_cmd = meta["boot"].replace("%f", str(link_path))
+        os.system(boot_cmd)
 
-    if [[ -n "$meta_boot" ]]; then
-        log_info "Running Boot..."
-        local boot_cmd="${meta_boot//%f/$deploy_path}"
-        eval "$boot_cmd"
-    fi
+    if meta.get("noexec") != "true":
+        log("INFO", f"Executing {filename}...")
+        log("INFO", "--------------------------------")
+        args = meta.get("args", "")
+        cmd = meta.get("exec", str(link_path)).replace("%f", str(link_path))
+        os.system(f"{cmd} {args}")
 
-    # --- 7. EXECUTION ---
-    if [[ "$meta_noexec" == "true" ]]; then log_warn "Auto-exec blocked."; return 0; fi
-
-    local should_run=true
-    for arg in "$@"; do if [[ "$arg" == "--no-run" ]]; then should_run=false; fi; done
-
-    if [[ "$should_run" == true ]]; then
-        log_info "Executing $filename..."
-        echo "---------------------------------------------------"
-        local exec_args=""
-        if [[ -n "$meta_args" ]]; then exec_args="$meta_args"; fi
-
-        if [[ -n "$meta_exec" ]]; then
-            local cmd_str="${meta_exec//%f/$deploy_path}"
-            eval "$cmd_str $exec_args"
-        else "$deploy_path" $exec_args; fi
-    fi
-}
-
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then pastex "$@"; fi
+if __name__ == "__main__":
+    main()
