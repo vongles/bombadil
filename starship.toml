@@ -1,0 +1,53 @@
+# THE EXPERT REPLICA (Valid TOML Literal Syntax)
+
+# We use ''' (Literal Multiline String).
+# TOML ignores backslashes here. We pass '\[', '\]' directly to Starship.
+# Starship interprets '\[', '\]' as literal brackets.
+format = '''
+[\[](bold bright-black)$username$hostname[\]](bold bright-black) $directory$git_branch$git_status
+$character'''
+
+[username]
+show_always = true
+style_user = "bold blue"
+style_root = "bold red"
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+format = "[@$hostname]($style)"
+style = "bold blue"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+style = "bold yellow"
+read_only = " 🔒"
+format = "[$path]($style) "
+
+[git_branch]
+symbol = ""
+style = "bold blue"
+format = "([$symbol$branch]($style))"
+
+[git_status]
+style = "bold yellow"
+format = "([$all_status$ahead_behind]($style))"
+conflicted = "="
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+up_to_date = ""
+untracked = "?"
+stashed = "$"
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+[character]
+# We use single quotes ('') for Literal Strings.
+# We explicitly escape $ as \$ so Starship renders a literal dollar sign.
+success_symbol = '[↳ ✔ \$](bold green)'
+error_symbol = '[↳ ✘ \$](bold red)'
+vicmd_symbol = '[↳ ❮ ](bold green)'

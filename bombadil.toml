@@ -1,75 +1,48 @@
-dotfiles_dir = "."
+dotfiles_dir = "src/aerarium"
+# --- B.T.D.S. OMNISYSTEM MODULE ---
+[[dot]]
+source = "btds_scripts"
+target = ".local/bin/btds"
+ignore = [ "__pycache__", "*.json", "*.md" ]
+
+# Post-install hook to ensure they remain executable after linking
+hook = [ "chmod +x ~/.local/bin/btds/*" ]
 
 [settings]
 terminal_width = 80
 default_profile = "arch_arm_proot"
 
+# --- PROFILE: ARCH ARM PROOT ---
 [profiles.arch_arm_proot]
-vars = [ "vars_arch.toml",]
+    # V4 SYNTAX: vars is a list of relative paths to variable files
+    vars = [ "vars_arch.toml" ]
 
+    [profiles.arch_arm_proot.dots]
+    bash_core   = { source = "bash/.bashrc",        target = ".bashrc" }
+    bash_alias  = { source = "bash/aliases.bash",   target = ".config/bash/aliases.bash" }
+    bash_export = { source = "bash/exports.bash",   target = ".config/bash/exports.bash" }
+    bash_prompt = { source = "bash/prompt.bash",    target = ".config/bash/prompt.bash" }
+    starship    = { source = "starship.toml",       target = ".config/starship.toml" }
+    nvim_custom = { source = "nvim/lua/custom",     target = ".config/nvim/lua/custom" }
+
+    [profiles.arch_arm_proot.hook]
+    post_install = [
+        "mkdir -p ~/.config/bash",
+        "mkdir -p ~/.config/nvim/lua",
+        "source ~/.bashrc"
+    ]
+
+# --- PROFILE: TERMUX ---
 [profiles.termux]
-vars = [ "vars_termux.toml",]
+    vars = [ "vars_termux.toml" ]
 
-[profiles.arch_arm_proot.hook]
-post_install = [ "mkdir -p ~/.config/bash", "mkdir -p ~/.config/nvim/lua", "source ~/.bashrc",]
+    [profiles.termux.dots]
+    bash_core   = { source = "bash/.bashrc",        target = ".bashrc" }
+    bash_alias  = { source = "bash/aliases.bash",   target = ".config/bash/aliases.bash" }
+    bash_export = { source = "bash/exports.bash",   target = ".config/bash/exports.bash" }
+    bash_prompt = { source = "bash/prompt.bash",    target = ".config/bash/prompt.bash" }
+    starship    = { source = "starship.toml",       target = ".config/starship.toml" }
+    nvim_custom = { source = "nvim/lua/custom",     target = ".config/nvim/lua/custom" }
 
-[profiles.termux.hook]
-post_install = [ "mkdir -p ~/.config/bash", "source ~/.bashrc",]
-
-[profiles.arch_arm_proot.dots.bash_core]
-source = "bash/.bashrc"
-target = ".bashrc"
-
-[profiles.arch_arm_proot.dots.bash_alias]
-source = "bash/aliases.bash"
-target = ".config/bash/aliases.bash"
-
-[profiles.arch_arm_proot.dots.bash_export]
-source = "bash/exports.bash"
-target = ".config/bash/exports.bash"
-
-[profiles.arch_arm_proot.dots.bash_prompt]
-source = "bash/prompt.bash"
-target = ".config/bash/prompt.bash"
-
-[profiles.arch_arm_proot.dots.starship]
-source = "starship.toml"
-target = ".config/starship.toml"
-
-[profiles.arch_arm_proot.dots.nvim_custom]
-source = "nvim/lua/custom"
-target = ".config/nvim/lua/custom"
-
-[profiles.arch_arm_proot.dots.btds]
-source = "btds_scripts"
-target = ".local/bin/btds"
-ignore = [ "__pycache__", "*.json", "*.pyc",]
-
-[profiles.termux.dots.bash_core]
-source = "bash/.bashrc"
-target = ".bashrc"
-
-[profiles.termux.dots.bash_alias]
-source = "bash/aliases.bash"
-target = ".config/bash/aliases.bash"
-
-[profiles.termux.dots.bash_export]
-source = "bash/exports.bash"
-target = ".config/bash/exports.bash"
-
-[profiles.termux.dots.bash_prompt]
-source = "bash/prompt.bash"
-target = ".config/bash/prompt.bash"
-
-[profiles.termux.dots.starship]
-source = "starship.toml"
-target = ".config/starship.toml"
-
-[profiles.termux.dots.nvim_custom]
-source = "nvim/lua/custom"
-target = ".config/nvim/lua/custom"
-
-[profiles.termux.dots.btds]
-source = "btds_scripts"
-target = ".local/bin/btds"
-ignore = [ "__pycache__", "*.json", "*.pyc",]
+    [profiles.termux.hook]
+    post_install = [ "mkdir -p ~/.config/bash", "source ~/.bashrc" ]
