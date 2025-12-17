@@ -31,3 +31,6 @@ if [ -d "/data/data/com.termux" ]; then
     android() { rish -c "$*"; }
     killapp() { [ -n "$1" ] && rish -c "am force-stop $1"; }
 fi
+
+# B.T.D.S. Shortcuts
+alias px="pastex"

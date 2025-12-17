@@ -1,0 +1,134 @@
+# @pastex file: vlc_transmuter
+# @pastex deps: python-rich
+# @pastex exec: python3 %f
+# @pastex args: --help
+# @pastex usage: Converts VLC DB <-> JSON.
+
+import sqlite3
+import json
+import argparse
+import base64
+import os
+import sys
+from pathlib import Path
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import track
+
+console = Console()
+
+# --- CUSTOM JSON HANDLERS FOR BINARY DATA ---
+class BytesEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return {'__bytes__': base64.b64encode(obj).decode('ascii')}
+        return super().default(obj)
+
+def as_bytes(dct):
+    if '__bytes__' in dct:
+        return base64.b64decode(dct['__bytes__'])
+    return dct
+
+def export_db(db_path, json_path):
+    if not os.path.exists(db_path):
+        console.print(f"[bold red]Error:[/bold red] Database {db_path} not found.")
+        sys.exit(1)
+
+    console.print(f"[cyan]>> Connecting to {db_path}...[/cyan]")
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    db_dump = {"tables": {}}
+
+    # 1. Get Schema
+    cur.execute("SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+    tables = cur.fetchall()
+
+    for table_name, schema_sql in track(tables, description="Exporting tables..."):
+        # 2. Get Data
+        cur.execute(f"SELECT * FROM {table_name}")
+        rows = [dict(row) for row in cur.fetchall()]
+        
+        db_dump["tables"][table_name] = {
+            "schema": schema_sql,
+            "rows": rows
+        }
+
+    conn.close()
+
+    console.print(f"[cyan]>> Serializing to JSON...[/cyan]")
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(db_dump, f, cls=BytesEncoder, indent=2)
+    
+    console.print(f"[bold green]✔ Export Complete:[/bold green] {json_path}")
+
+def import_db(json_path, db_path):
+    if not os.path.exists(json_path):
+        console.print(f"[bold red]Error:[/bold red] JSON file {json_path} not found.")
+        sys.exit(1)
+
+    # Prevent accidental overwrite without warning (though we overwrite for the operation)
+    if os.path.exists(db_path):
+        console.print(f"[yellow]>> Overwriting existing database at {db_path}[/yellow]")
+        os.remove(db_path)
+
+    console.print(f"[cyan]>> Loading JSON model...[/cyan]")
+    with open(json_path, 'r', encoding='utf-8') as f:
+        db_data = json.load(f, object_hook=as_bytes)
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    
+    # Optimization for bulk inserts
+    cur.execute("PRAGMA synchronous = OFF")
+    cur.execute("PRAGMA journal_mode = MEMORY")
+
+    for table_name, data in track(db_data["tables"].items(), description="Reconstructing DB..."):
+        # 1. Create Table
+        if data["schema"]:
+            cur.execute(data["schema"])
+        
+        # 2. Insert Data
+        rows = data["rows"]
+        if not rows: continue
+        
+        columns = list(rows[0].keys())
+        placeholders = ",".join(["?"] * len(columns))
+        col_names = ",".join(columns)
+        
+        sql = f"INSERT INTO {table_name} ({col_names}) VALUES ({placeholders})"
+        
+        # Extract values in correct order
+        values = [[row.get(c) for c in columns] for row in rows]
+        cur.executemany(sql, values)
+
+    conn.commit()
+    conn.close()
+    console.print(f"[bold green]✔ Import Complete:[/bold green] {db_path}")
+
+def main():
+    parser = argparse.ArgumentParser(description="B.T.D.S. VLC Transmuter")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Export Command
+    exp = subparsers.add_parser("export", help="Convert DB -> JSON")
+    exp.add_argument("db_file", help="Input .db file")
+    exp.add_argument("--out", "-o", help="Output .json file", default="vlc_dump.json")
+
+    # Import Command
+    imp = subparsers.add_parser("import", help="Convert JSON -> DB")
+    imp.add_argument("json_file", help="Input .json file")
+    imp.add_argument("--out", "-o", help="Output .db file", default="vlc_media_restored.db")
+
+    args = parser.parse_args()
+
+    console.print(Panel("[bold white]B.T.D.S. MEDIA TRANSMUTER[/bold white]", border_style="blue"))
+
+    if args.command == "export":
+        export_db(args.db_file, args.out)
+    elif args.command == "import":
+        import_db(args.json_file, args.out)
+
+if __name__ == "__main__":
+    main()

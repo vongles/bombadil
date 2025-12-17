@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 # @pastex file: btds_ingest
 # @pastex deps: python-rich
 # @pastex exec: python3 %f
 # @pastex args: --help
-# @pastex usage: Converts raw B.T.D.S. text manifests into JSON.
+# @pastex usage: Parses Pipe-Delimited Manifests (V1.4)
 
 import re
 import json
@@ -11,7 +12,6 @@ import argparse
 from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
-from rich.syntax import Syntax
 
 console = Console()
 
@@ -35,80 +35,64 @@ def parse_manifest(text):
             
             # Specific parsing logic
             if "SEPTUMVIRATE" in section_name.upper():
-                entry["agents"] = parse_septumvirate(content)
+                entry["agents"] = parse_table(content, ["agent", "version", "function", "phrase"])
             elif "LEGIO" in section_name.upper():
-                entry["legions"] = parse_legio(content)
+                entry["legions"] = parse_table(content, ["id", "name", "centurion", "specialists", "core_function"])
             
             data["sections"][key] = entry
     return data
 
-def parse_septumvirate(content):
-    agents = []
+def parse_table(content, headers):
+    """Generic parser for Pipe (|) delimited tables"""
+    rows = []
     lines = content.split('\n')
-    start_parsing = False
+    
     for line in lines:
-        if "Agent" in line and "Version" in line: start_parsing = True; continue
-        if start_parsing and line.strip():
-            parts = re.split(r'\s{2,}', line.strip())
-            if len(parts) >= 3:
-                agents.append({
-                    "agent": parts[0],
-                    "version": parts[1] if len(parts) > 1 else "Unknown",
-                    "function": parts[2] if len(parts) > 2 else "Unknown",
-                    "phrase": parts[3] if len(parts) > 3 else ""
-                })
-    return agents
-
-def parse_legio(content):
-    legions = []
-    lines = content.split('\n')
-    start_parsing = False
-    for line in lines:
-        if "Legio ID" in line: start_parsing = True; continue
-        if start_parsing and line.strip():
-            parts = re.split(r'\s{2,}', line.strip())
-            if len(parts) >= 3:
-                legions.append({
-                    "id": parts[0],
-                    "name": parts[1],
-                    "centurion": parts[2],
-                    "specialists": parts[3] if len(parts) > 3 else "",
-                    "core_function": parts[4] if len(parts) > 4 else ""
-                })
-    return legions
+        if "|" not in line: continue # Skip non-table lines
+        if "---" in line: continue   # Skip separator lines
+        if "Legio ID" in line or "Agent" in line: continue # Skip headers
+        
+        # Split by pipe and strip whitespace
+        parts = [p.strip() for p in line.split('|')]
+        
+        # Handle cases where leading/trailing pipes create empty strings
+        if parts[0] == '': parts.pop(0)
+        if parts and parts[-1] == '': parts.pop()
+        
+        if len(parts) >= len(headers):
+            entry = {}
+            for i, header in enumerate(headers):
+                entry[header] = parts[i] if i < len(parts) else ""
+            rows.append(entry)
+            
+    return rows
 
 def main():
-    parser = argparse.ArgumentParser(description="B.T.D.S. Manifest Ingestor")
-    parser.add_argument("file", nargs='?', help="Path to the raw text manifest")
-    parser.add_argument("--out", help="Output JSON filename")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", nargs='?')
+    parser.add_argument("--out")
     args = parser.parse_args()
 
-    console.print(Panel("[bold cyan]B.T.D.S. IDEA ENGINE[/bold cyan] [dim]v1.2[/dim]", border_style="cyan"))
+    console.print(Panel("[bold cyan]B.T.D.S. IDEA ENGINE[/bold cyan] [dim]v1.4 (Pipe-Delimited)[/dim]", border_style="cyan"))
 
-    if not args.file:
-        console.print("[yellow]Usage: btds_ingest <filename> [--out output.json][/yellow]")
-        return
-
+    if not args.file: return
+    
     filepath = Path(args.file)
-    if not filepath.exists():
-        console.print(f"[bold red]Error:[/bold red] File '{filepath}' not found.")
-        sys.exit(1)
+    if not filepath.exists(): sys.exit(1)
 
     try:
         with open(filepath, 'r', encoding='utf-8') as f: raw_text = f.read()
-        
         console.print(f"[green]✔ Ingesting:[/green] {filepath}")
-        structured_data = parse_manifest(raw_text)
         
+        data = parse_manifest(raw_text)
         out_path = Path(args.out) if args.out else filepath.with_suffix('.json')
 
         with open(out_path, 'w', encoding='utf-8') as f:
-            json.dump(structured_data, f, indent=4)
-            
+            json.dump(data, f, indent=4)
         console.print(f"[bold white]Exported to:[/bold white] {out_path}")
         
     except Exception as e:
-        console.print(f"[bold red]KERNEL PANIC:[/bold red] {str(e)}")
+        console.print(f"[bold red]PANIC:[/bold red] {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
