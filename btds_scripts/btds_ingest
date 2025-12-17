@@ -1,0 +1,142 @@
+# @pastex file: btds_ingest
+# @pastex exec: ./%f
+# @pastex boot: pip install rich && chmod +x %f
+# @pastex args: --help
+# @pastex usage: Parses raw text manifests into structured JSON for the OmniSystem.
+
+#!/usr/bin/env python3
+
+import re
+import json
+import sys
+import argparse
+from pathlib import Path
+from rich.console import Console
+from rich.panel import Panel
+from rich.syntax import Syntax
+
+# Initialize Console
+console = Console()
+
+def parse_manifest(text):
+    """
+    Parses the B.T.D.S. Manifest into a dictionary.
+    """
+    data = {"system_name": "B.T.D.S. OMNISYSTEM KERNEL", "sections": {}}
+    
+    # Split into sections based on capital letters followed by dot (e.g., "A. ")
+    sections = re.split(r'\n(?=[A-F]\. )', text)
+    
+    for section in sections:
+        section = section.strip()
+        if not section:
+            continue
+            
+        # Extract Title
+        title_match = re.match(r'([A-F]\. .*?)(?:\n|$)', section)
+        if title_match:
+            title = title_match.group(1).strip()
+            content = section[len(title):].strip()
+            
+            # Key cleaning
+            key = title.split(' ', 1)[0].replace('.', '')
+            section_name = title.split(' ', 1)[1] if ' ' in title else title
+            
+            entry = {"title": section_name, "content": content}
+            
+            # Specific parsing for Table-heavy sections
+            if "SEPTUMVIRATE" in section_name.upper():
+                entry["agents"] = parse_septumvirate(content)
+            elif "LEGIO" in section_name.upper():
+                entry["legions"] = parse_legio(content)
+            
+            data["sections"][key] = entry
+            
+    return data
+
+def parse_septumvirate(content):
+    agents = []
+    lines = content.split('\n')
+    start_parsing = False
+    
+    for line in lines:
+        if "Agent" in line and "Version" in line:
+            start_parsing = True
+            continue
+        if start_parsing and line.strip():
+            parts = re.split(r'\s{2,}', line.strip())
+            if len(parts) >= 3:
+                agents.append({
+                    "agent": parts[0],
+                    "version": parts[1] if len(parts) > 1 else "Unknown",
+                    "function": parts[2] if len(parts) > 2 else "Unknown",
+                    "phrase": parts[3] if len(parts) > 3 else ""
+                })
+    return agents
+
+def parse_legio(content):
+    legions = []
+    lines = content.split('\n')
+    start_parsing = False
+    
+    for line in lines:
+        if "Legio ID" in line:
+            start_parsing = True
+            continue
+        if start_parsing and line.strip():
+            parts = re.split(r'\s{2,}', line.strip())
+            if len(parts) >= 3:
+                legions.append({
+                    "id": parts[0],
+                    "name": parts[1],
+                    "centurion": parts[2],
+                    "specialists": parts[3] if len(parts) > 3 else "",
+                    "core_function": parts[4] if len(parts) > 4 else ""
+                })
+    return legions
+
+def main():
+    parser = argparse.ArgumentParser(description="B.T.D.S. Manifest Ingestor")
+    parser.add_argument("file", nargs='?', help="Path to the raw text manifest")
+    parser.add_argument("--out", help="Output JSON filename (optional)")
+    
+    args = parser.parse_args()
+
+    # Logo
+    console.print(Panel("[bold cyan]B.T.D.S. IDEA ENGINE[/bold cyan] [dim]v1.2[/dim]", border_style="cyan"))
+
+    if not args.file:
+        console.print("[yellow]Usage: btds_ingest <filename>[/yellow]")
+        sys.exit(1)
+        
+    filepath = Path(args.file)
+    
+    if not filepath.exists():
+        console.print(f"[bold red]Error:[/bold red] File '{filepath}' not found.")
+        sys.exit(1)
+
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            raw_text = f.read()
+            
+        console.print(f"[green]✔ Ingesting intelligence from:[/green] {filepath}")
+        structured_data = parse_manifest(raw_text)
+        
+        # Determine output filename
+        if args.out:
+            out_path = Path(args.out)
+        else:
+            out_path = filepath.with_suffix('.json')
+
+        with open(out_path, 'w', encoding='utf-8') as f:
+            json.dump(structured_data, f, indent=4)
+            
+        console.print(f"[green]✔ Structuring complete.[/green]")
+        console.print(f"[bold white]Exported to:[/bold white] {out_path}")
+        
+    except Exception as e:
+        console.print(f"[bold red]KERNEL PANIC:[/bold red] {str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
