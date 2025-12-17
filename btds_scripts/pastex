@@ -149,3 +149,10 @@ pastex() {
         fi
     fi
 }
+
+# --- KERNEL WAKEUP CALL ---
+# Allow sourcing (loading function) OR direct execution (running tool)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    pastex "$@"
+fi
+
