@@ -1,4 +1,4 @@
-dotfiles_dir = "."
+dotfiles_dir = "btds_dots"
 
 [settings]
 terminal_width = 80
