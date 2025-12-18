@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+
+import sqlite3
+import json
+import argparse
+import base64
+import os
+import sys
+from pathlib import Path
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import track
+
+console = Console()
+
+# --- JSON ENCODERS FOR BINARY BLOBS ---
+class BytesEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            # Convert binary blob to Base64 string for JSON safety
+            return {'__bytes__': base64.b64encode(obj).decode('ascii')}
+        return super().default(obj)
+
+def as_bytes(dct):
+    # Convert Base64 string back to binary blob
+    if '__bytes__' in dct:
+        return base64.b64decode(dct['__bytes__'])
+    return dct
+
+# --- CORE LOGIC: EXPORT (DB -> JSON) ---
+def export_db(db_path, json_path):
+    if not os.path.exists(db_path):
+        console.print(f"[bold red]Error:[/bold red] Database {db_path} not found.")
+        sys.exit(1)
+
+    console.print(f"[cyan]>> Liquifying {db_path} to JSON...[/cyan]")
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    db_dump = {"tables": {}}
+
+    # 1. Extract Schema
+    cur.execute("SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+    tables = cur.fetchall()
+
+    for table_name, schema_sql in track(tables, description="Processing Tables..."):
+        # 2. Extract Data
+        cur.execute(f"SELECT * FROM {table_name}")
+        rows = [dict(row) for row in cur.fetchall()]
+        
+        db_dump["tables"][table_name] = {
+            "schema": schema_sql,
+            "rows": rows
+        }
+
+    conn.close()
+
+    # 3. Serialize
+    console.print(f"[cyan]>> Writing to {json_path}...[/cyan]")
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(db_dump, f, cls=BytesEncoder, indent=2)
+    
+    console.print(f"[bold green]✔ Transmutation Complete:[/bold green] {json_path}")
+
+# --- CORE LOGIC: IMPORT (JSON -> DB) ---
+def import_db(json_path, db_path):
+    if not os.path.exists(json_path):
+        console.print(f"[bold red]Error:[/bold red] JSON file {json_path} not found.")
+        sys.exit(1)
+
+    if os.path.exists(db_path):
+        console.print(f"[yellow]>> Overwriting existing binary at {db_path}[/yellow]")
+        os.remove(db_path)
+
+    console.print(f"[cyan]>> Solidifying JSON into SQLite...[/cyan]")
+    with open(json_path, 'r', encoding='utf-8') as f:
+        db_data = json.load(f, object_hook=as_bytes)
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    
+    # Speed Optimizations
+    cur.execute("PRAGMA synchronous = OFF")
+    cur.execute("PRAGMA journal_mode = MEMORY")
+
+    for table_name, data in track(db_data["tables"].items(), description="Rebuilding Structure..."):
+        # 1. Rebuild Schema
+        if data["schema"]:
+            cur.execute(data["schema"])
+        
+        # 2. Populate Data
+        rows = data["rows"]
+        if not rows: continue
+        
+        columns = list(rows[0].keys())
+        placeholders = ",".join(["?"] * len(columns))
+        col_names = ",".join(columns)
+        
+        sql = f"INSERT INTO {table_name} ({col_names}) VALUES ({placeholders})"
+        
+        # Map rows to values
+        values = [[row.get(c) for c in columns] for row in rows]
+        cur.executemany(sql, values)
+
+    conn.commit()
+    conn.close()
+    console.print(f"[bold green]✔ Restoration Complete:[/bold green] {db_path}")
+
+def main():
+    parser = argparse.ArgumentParser(description="B.T.D.S. VLC Transmuter")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Export Command
+    exp = subparsers.add_parser("export", help="Convert DB -> JSON")
+    exp.add_argument("db_file", help="Source SQLite DB")
+    exp.add_argument("--out", "-o", help="Destination JSON", default="vlc_dump.json")
+
+    # Import Command
+    imp = subparsers.add_parser("import", help="Convert JSON -> DB")
+    imp.add_argument("json_file", help="Source JSON")
+    imp.add_argument("--out", "-o", help="Destination SQLite DB", default="vlc_media_restored.db")
+
+    args = parser.parse_args()
+
+    console.print(Panel("[bold white]B.T.D.S. VLC TRANSMUTER[/bold white] [dim]v2.0[/dim]", border_style="blue"))
+
+    if args.command == "export":
+        export_db(args.db_file, args.out)
+    elif args.command == "import":
+        import_db(args.json_file, args.out)
+
+if __name__ == "__main__":
+    main()

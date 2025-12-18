@@ -1,0 +1,6 @@
+# @pastex file: vars_proot.toml
+# @pastex noexec: true
+sys_id = "arch_arm_proot"
+sys_update = "pacman -Syu"
+sys_root = "su"
+sys_exports = "export ARCH_ARCH=aarch64"

@@ -1,11 +1,11 @@
-# @pastex file: ../bombadil.toml
+# @pastex file: bombadil.toml
 # @pastex noexec: true
-# Force absolute path to stop Bombadil from getting lost
-dotfiles_dir = "/home/matt/btds_dots"
+# Force dotfiles_dir to current directory to avoid path recursion errors
+dotfiles_dir = "."
 
 [settings]
 terminal_width = 80
-default_profile = "arch_arm_proot"
+default_profile = "arch_x64"
 
 # --- PROFILE: T630 THIN CLIENT (x86_64) ---
 [profiles.arch_x64]

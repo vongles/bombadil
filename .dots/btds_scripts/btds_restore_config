@@ -1,0 +1,78 @@
+# @pastex file: btds_restore_config
+# @pastex exec: bash %f
+# @pastex usage: Restores valid bombadil.toml and cleans garbage files.
+
+#!/bin/bash
+
+REPO_ROOT="$HOME/btds_dots"
+CONFIG_FILE="$REPO_ROOT/bombadil.toml"
+
+echo -e "\033[1;34m>> [RESTORATION] Repairing System Configuration...\033[0m"
+
+# 1. RESTORE VALID BOMBADIL CONFIG
+# This config points dotfiles_dir to "." (the repo root) and includes the BTDS module.
+cat << 'EOF' > "$CONFIG_FILE"
+# --- B.T.D.S. OMNISYSTEM CONFIG V4.6 ---
+dotfiles_dir = "."
+
+[settings]
+terminal_width = 80
+default_profile = "arch_arm_proot"
+
+# --- PROFILE: ARCH ARM PROOT ---
+[profiles.arch_arm_proot]
+    vars = [ "vars_arch.toml" ]
+
+    [profiles.arch_arm_proot.dots]
+    # Core Assets (Assimilated)
+    bash_core   = { source = "bash/.bashrc",        target = ".bashrc" }
+    bash_alias  = { source = "bash/aliases.bash",   target = ".config/bash/aliases.bash" }
+    bash_export = { source = "bash/exports.bash",   target = ".config/bash/exports.bash" }
+    bash_prompt = { source = "bash/prompt.bash",    target = ".config/bash/prompt.bash" }
+    starship    = { source = "starship.toml",       target = ".config/starship.toml" }
+    nvim_custom = { source = "nvim/lua/custom",     target = ".config/nvim/lua/custom" }
+    
+    # B.T.D.S. Module (The Toolchain)
+    btds_tools  = { source = "btds_scripts", target = ".local/bin/btds", ignore = ["__pycache__", "*.txt", "*.json"] }
+
+    [profiles.arch_arm_proot.hook]
+    post_install = [
+        "mkdir -p ~/.config/bash",
+        "mkdir -p ~/.config/nvim/lua",
+        "chmod +x ~/.local/bin/btds/*",
+        "source ~/.bashrc"
+    ]
+
+# --- PROFILE: TERMUX ---
+[profiles.termux]
+    vars = [ "vars_termux.toml" ]
+    [profiles.termux.dots]
+    bash_core   = { source = "bash/.bashrc",        target = ".bashrc" }
+    bash_alias  = { source = "bash/aliases.bash",   target = ".config/bash/aliases.bash" }
+    bash_export = { source = "bash/exports.bash",   target = ".config/bash/exports.bash" }
+    bash_prompt = { source = "bash/prompt.bash",    target = ".config/bash/prompt.bash" }
+    starship    = { source = "starship.toml",       target = ".config/starship.toml" }
+    nvim_custom = { source = "nvim/lua/custom",     target = ".config/nvim/lua/custom" }
+    btds_tools  = { source = "btds_scripts", target = ".local/bin/btds", ignore = ["__pycache__", "*.txt", "*.json"] }
+    
+    [profiles.termux.hook]
+    post_install = [ "chmod +x ~/.local/bin/btds/*", "source ~/.bashrc" ]
+EOF
+
+echo -e "\033[1;32m>> [CONFIG] Valid bombadil.toml written to $CONFIG_FILE\033[0m"
+
+# 2. PURGE GARBAGE FILES (The "filename" bug)
+echo ">> [CLEANUP] Removing artifact files..."
+find "$REPO_ROOT/btds_scripts" -name "*<filename>*" -delete
+find "$REPO_ROOT/btds_scripts" -name "*Required*" -delete
+
+# 3. RELINK
+echo ">> [LINK] Re-linking Bombadil..."
+bombadil link
+
+# 4. GIT COMMIT
+cd "$REPO_ROOT"
+git add .
+git commit -m "Fix: Restored valid Bombadil config & purged artifacts"
+
+echo -e "\033[1;32m>> [SUCCESS] System Restored. Ready for Ingestion.\033[0m"

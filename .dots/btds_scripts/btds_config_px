@@ -1,0 +1,21 @@
+
+REPO_ROOT="$HOME/btds_dots"
+ALIAS_FILE="$REPO_ROOT/bash/aliases.bash"
+
+# Ensure file exists
+mkdir -p "$(dirname "$ALIAS_FILE")"
+touch "$ALIAS_FILE"
+
+# Inject Alias if missing
+if ! grep -q "alias px=" "$ALIAS_FILE"; then
+    echo "" >> "$ALIAS_FILE"
+    echo "# B.T.D.S. Shortcuts" >> "$ALIAS_FILE"
+    echo 'alias px="pastex"' >> "$ALIAS_FILE"
+    echo ">> [CONFIG] Added 'alias px=pastex' to aliases.bash"
+else
+    echo ">> [CONFIG] Alias 'px' already exists."
+fi
+
+# Reload
+echo ">> [SYSTEM] Sourcing aliases..."
+source "$ALIAS_FILE"
