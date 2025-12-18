@@ -1,6 +1,6 @@
 # @pastex file: ../bombadil.toml
 # @pastex noexec: true
-# Force absolute path to stop Bombadil from getting lost
+# Force absolute pathing for x86_64/ARM parity
 dotfiles_dir = "/home/matt/btds_dots"
 
 [settings]
