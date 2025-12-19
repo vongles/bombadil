@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+import sys, os
+from pathlib import Path
+content = sys.stdin.read()
+if content:
+    tmp = Path("/tmp/btds_clip")
+    tmp.write_text(content)
+    print(">> [BRIDGE] Buffer seated at /tmp/btds_clip")
+else:
+    sys.exit(1)

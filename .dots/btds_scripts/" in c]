@@ -1,8 +1,0 @@
-# @pastex file:" in c]
-    
-    log("INFO", f"Detected {len(valid_chunks)} file(s) in buffer.")
-    for chunk in valid_chunks:
-        process_chunk(chunk.strip())
-
-if __name__ == "__main__":
-    main()

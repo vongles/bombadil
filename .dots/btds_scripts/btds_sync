@@ -1,0 +1,10 @@
+#!/bin/bash
+ROOT="${BTDS_ROOT:-$(pwd)}"
+cd "$ROOT" || exit 1
+./btds_scripts/btds_census
+ARCH=$(grep "sys_arch" vars_dynamic.toml | cut -d'"' -f2)
+PROFILE="arch_x64"
+[[ "$ARCH" == "aarch64" ]] && PROFILE="arch_arm_proot"
+echo ">> [INSTALL] Harmonizing Profile: $PROFILE"
+bombadil install
+bombadil link -p "$PROFILE" --force
