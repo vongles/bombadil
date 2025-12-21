@@ -21,9 +21,9 @@ alias ping='ping -c 3'
 alias openports='ss --all --numeric --processes --ipv4 --ipv6'
 
 # --- SYSTEM SPECIFIC (Bombadil Templates) ---
-alias update='sudo pacman -Syu'
-alias root='sudo -i'
-alias chconf='bombadil link --profiles "arch_x64"'
+alias update='pacman -Syu'
+alias root='su'
+alias chconf='bombadil link --profiles "arch_arm_proot"'
 
 # Termux Specifics
 if [ -d "/data/data/com.termux" ]; then

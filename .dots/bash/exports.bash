@@ -6,7 +6,7 @@ export GPG_TTY=$(tty)
 export VISUAL=nvim
 export EDITOR="$VISUAL"
 export LANG="en_US.UTF-8"
-export AER_PROFILE="arch_x64"
+export AER_PROFILE="arch_arm_proot"
 export GEMINI_API_KEY="AIzaSyCQNez6_sFl2koNAXOWFi7dplSWzh0UTyY"
 # Termux Runtime Fix
 if [ -d "/data/data/com.termux" ]; then
@@ -34,7 +34,7 @@ export PATH
 unset -f add_to_path
 
 # Flavor Specific Exports
-export ARCH_ARCH=x86_64
+export ARCH_ARCH=aarch64
 
 # --- B.T.D.S. OMNISYSTEM ---
 export PATH="$HOME/.local/bin/btds:$PATH"
