@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 symlinks = ["/home/matt/.bashrc", "/home/matt/.local/bin/btds", "/home/matt/.config/starship.toml", "/home/matt/.config/bash/exports.bash", "/home/matt/.config/bash/aliases.bash"]
+=======
+symlinks = ["/root/.config/bash/aliases.bash", "/root/.config/bash/exports.bash", "/root/.config/starship.toml", "/root/.local/bin/btds", "/root/.bashrc"]
+>>>>>>> f1c34dd076ddfdd37742dbda7979320480183a15
