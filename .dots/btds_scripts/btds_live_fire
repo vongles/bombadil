@@ -1,7 +1,0 @@
-# @pastex file: btds_live_fire
-# @pastex exec: bash %f
-# @pastex usage: Verifies V4.6.2 Integrity (Awakened)
-
-echo -e "\033[1;32m>> [SUCCESS] B.T.D.S. Kernel V4.6.2 is ACTIVE & LOUD.\033[0m"
-echo "   - Path Resolution: OK"
-echo "   - Auto-Execution: OK"

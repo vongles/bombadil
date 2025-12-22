@@ -1,9 +1,0 @@
-#!/bin/bash
-[ ! -f "./bombadil.toml" ] && echo ">> [ERR] Not in repo root." && exit 1
-REPO_PATH=$(pwd)
-EXPORTS_FILE="$HOME/.config/bash/exports.bash"
-mkdir -p "$(dirname "$EXPORTS_FILE")"
-sed -i '/export BTDS_ROOT=/d' "$EXPORTS_FILE" 2>/dev/null || touch "$EXPORTS_FILE"
-echo "export BTDS_ROOT=\"$REPO_PATH\"" >> "$EXPORTS_FILE"
-export BTDS_ROOT="$REPO_PATH"
-./btds_scripts/btds_sync

@@ -1,6 +1,0 @@
-# @pastex file: vars_x64.toml
-# @pastex noexec: true
-sys_id = "arch_x64"
-sys_update = "sudo pacman -Syu"
-sys_root = "sudo -i"
-sys_exports = "export ARCH_ARCH=x86_64"
