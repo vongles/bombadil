@@ -2,4 +2,4 @@
 __pycache__/
 *.log
 tmp/
-previous_state.toml
+.dots/previous_state.toml
