@@ -1,5 +1,1 @@
-<<<<<<< HEAD
-symlinks = ["/home/matt/.config/bash/aliases.bash", "/home/matt/.config/bash/exports.bash", "/home/matt/.bashrc", "/home/matt/.config/starship.toml", "/home/matt/.local/bin/btds"]
-=======
-symlinks = ["/home/matt/.config/bash/exports.bash", "/home/matt/.config/bash/aliases.bash", "/home/matt/.local/bin/btds", "/home/matt/.bashrc", "/home/matt/.config/starship.toml"]
->>>>>>> 156f33507a4e29c8f428d2984fa9366e447d8612
+symlinks = ["/home/matt/.config/bash/aliases.bash", "/home/matt/.bashrc", "/home/matt/.config/bash/exports.bash", "/home/matt/.config/starship.toml", "/home/matt/.local/bin/btds"]
