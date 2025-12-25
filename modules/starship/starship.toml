@@ -1,0 +1,32 @@
+# Use Literal strings to avoid the "bitch" of TOML escaping
+format = '''[\[](bold bright-black)$username$hostname${custom.remote}[ at ](bold bright-black)$time[\]](bold bright-black) $directory$git_branch$git_status
+$character'''
+
+[username]
+show_always = true
+style_user = "bold blue"
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+# This will style the hostname blue if local, but we'll override it for remote
+format = "[@$hostname]($style)"
+style = "bold blue"
+
+# Custom module to flag a remote session
+[custom.remote]
+description = "Check for SSH connection"
+when = 'test -n "$SSH_CONNECTION"'
+command = 'echo " ⚡REMOTE"' 
+style = "bold red"
+format = "[$output]($style)"
+
+[time]
+disabled = false
+format = "[$time]($style)"
+time_format = "%T"
+style = "bold yellow"
+
+[character]
+success_symbol = '[↳ ✔ \$](bold green)'
+error_symbol = '[↳ ✘ \$](bold red)'
