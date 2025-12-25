@@ -1,4 +1,0 @@
-sys_arch = "x86_64"
-sys_cores = 4
-sys_home = "/home/matt"
-sys_root = "/home/matt/src/bombadil"
