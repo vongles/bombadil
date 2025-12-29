@@ -1,5 +1,0 @@
-# Arch Variables
-sys_id = "arch_arm_proot"
-sys_update = "sudo pacman -Syu"
-sys_root = "sudo -i"
-sys_exports = ""

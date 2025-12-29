@@ -1,5 +1,0 @@
-# Termux Variables
-sys_id = "termux"
-sys_update = "pkg update && pkg upgrade"
-sys_root = "tsu"
-sys_exports = "export CRYPTOGRAPHY_DONT_BUILD_RUST=1"
