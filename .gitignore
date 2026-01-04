@@ -1,6 +1,5 @@
+.backup/
+*.swp
 .DS_Store
-__pycache__/
-*.log
-tmp/
-previous_state.toml
-.dots/
+# Ignore the hook logs if you use them
+.bombadil_log

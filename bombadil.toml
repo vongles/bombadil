@@ -1,0 +1,14 @@
+# JANUS BOMBADIL CONTROL v4
+# https://github.com/oknozor/toml-bombadil
+
+[settings]
+dots_dir = "dots"
+backup_dir = ".backup"
+
+[dots]
+# MAP: Repo Path (relative to dots_dir) -> Target System Path
+pastex = { source = "pastex/pastex.toml", target = "~/.config/pastex/config.toml" }
+
+[vars]
+# Global variables for template injection
+shell = "/bin/zsh"
