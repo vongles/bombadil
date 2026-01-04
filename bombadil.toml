@@ -1,14 +1,42 @@
-# JANUS BOMBADIL CONTROL v4
-# https://github.com/oknozor/toml-bombadil
+# JANUS BOMBADIL CONTROL v4.2 (PHOENIX)
+# ----------------------------------------------------
 
 [settings]
-dots_dir = "dots"
+dots_dir = ".dots"
 backup_dir = ".backup"
-
-[dots]
-# MAP: Repo Path (relative to dots_dir) -> Target System Path
-pastex = { source = "pastex/pastex.toml", target = "~/.config/pastex/config.toml" }
+# Force bash to run our wrapper logic consistently
+hook_shell = "/bin/bash"
 
 [vars]
-# Global variables for template injection
-shell = "/bin/zsh"
+# Defaults (Safe Fallback)
+rust_channel = "stable"
+editor = "vim"
+
+# ----------------------------------------------------
+# PROFILES (FLAT ARCHITECTURE)
+# ----------------------------------------------------
+
+# 1. BASE SYSTEM (Hardware Auto-Detect Target)
+[profiles.macos_silicon]
+vars = { editor = "nvim" }
+hooks = [
+    # Verify directory exists using the wrapper
+    "scripts/safe_exec.sh 'mkdir -p ~/.config/skhd'"
+]
+
+[profiles.arch_linux_amd64]
+vars = { editor = "nvim" }
+
+# 2. SPECIAL OPS (Standalone)
+[profiles.pastex]
+vars = { rust_channel = "nightly" }
+dots = {
+    # We explicitly quote the path to avoid spaces breaking things
+    pastex = { source = "pastex/pastex.toml", target = "~/.config/pastex/config.toml" }
+}
+hooks = [
+    # Pre-install: Ensure dir exists
+    "scripts/safe_exec.sh 'mkdir -p ~/.config/pastex'",
+    # Post-install: Echo status
+    "echo '>> JANUS: Pastex Config Linked.'"
+]

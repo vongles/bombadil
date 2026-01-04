@@ -1,5 +1,16 @@
+# JANUS IGNORE PROTOCOL
+
+# 1. SECURITY
+**/*.gpg
+secrets.toml
+.env
+
+# 2. STATE
 .backup/
+.bombadil_log
 *.swp
 .DS_Store
-# Ignore the hook logs if you use them
-.bombadil_log
+
+# 3. EXPLICIT ALLOW
+# We ensure git SEES the hidden .dots directory
+!.dots/
